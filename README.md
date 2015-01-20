@@ -12,5 +12,5 @@ Usage
 
 Download Binaries
 -----------------
-Download the ready-to-use binary.
+[Download the ready-to-use binary.](https://github.com/TwoRedCells/JpegQuality/blob/master/Binaries/JpegQuality.exe?raw=true)
 
