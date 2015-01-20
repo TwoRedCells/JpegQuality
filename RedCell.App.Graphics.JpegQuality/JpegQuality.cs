@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Text.RegularExpressions;
@@ -52,7 +53,7 @@ namespace RedCell.Apps.Graphics
                 {
                     var list = new List<string>(args);
                     list.RemoveAt(0); // First argument is path to exe.
-                    ProcessImages(list);
+                    ProcessImagesAsync(this, new DoWorkEventArgs(list.ToArray()));
                     Close();
                 }
             }
@@ -82,13 +83,13 @@ namespace RedCell.Apps.Graphics
             try
             {
                 var files = new List<string>(e.Data.GetData("FileDrop") as string[] ?? new string[0]);
-                bool valid = true;
+                bool valid = !Worker.IsBusy;
                 foreach (string file in files)
                     if (!Regex.IsMatch(file, @"\.jpe?g$", RegexOptions.IgnoreCase))
                         valid = false;
 
                 if (valid)
-                    ProcessImages(files);
+                    ProcessImagesAsync(this, new DoWorkEventArgs(files.ToArray()));
             }
             catch (Exception ex)
             {
@@ -104,7 +105,7 @@ namespace RedCell.Apps.Graphics
         private void DropLabel_DragOver(object sender, DragEventArgs e)
         {
             var files = new List<string>(e.Data.GetData("FileDrop") as string[] ?? new string[0]);
-            bool valid = true;
+            bool valid = !Worker.IsBusy;
             foreach (string file in files)
                 if (!Regex.IsMatch(file, @"\.jpe?g$", RegexOptions.IgnoreCase))
                     valid = false;
@@ -113,31 +114,27 @@ namespace RedCell.Apps.Graphics
         }
 
         /// <summary>
-        /// Handles the Validated event of the QualityBox control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        private void QualityBox_Validated(object sender, EventArgs e)
-        {
-            Quality = int.Parse((sender as ToolStripComboBox).SelectedText);
-        }
-
-        /// <summary>
         /// Processes the images.
         /// </summary>
         /// <param name="files">The files.</param>
         /// <exception cref="System.IO.FileNotFoundException">File does not exist.</exception>
-        private void ProcessImages(IEnumerable<string> files)
+        private void ProcessImages(string[] files)
         {
+            int complete = 0;
+            Worker.ReportProgress(complete, files.Length);
+
             foreach (string file in files)
             {
+                if (Worker.CancellationPending)
+                    return;
+
                 var info = new FileInfo(file);
                 if (!info.Exists) 
                     throw new FileNotFoundException("File does not exist.", info.FullName);
 
-                var directory = info.Directory;
                 var path = info.DirectoryName + @"\" + info.Name.Replace(info.Extension, "") + "-" + Quality + info.Extension;
                 ProcessImage(info.FullName, path);
+                Worker.ReportProgress(++complete, files.Length);
             }
         }
 
@@ -156,6 +153,61 @@ namespace RedCell.Apps.Graphics
                 options.Param[0] = new EncoderParameter(Encoder.Quality, Quality);
                 original.Save(destination, encoder, options);
             }
+        }
+
+        /// <summary>
+        /// Handles the SelectedIndexChanged event of the QualityBox control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        private void QualityBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            Quality = int.Parse((sender as ToolStripComboBox).Text);
+        }
+
+        /// <summary>
+        /// Handles the DoWork event of the Worker control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.ComponentModel.DoWorkEventArgs"/> instance containing the event data.</param>
+        private void ProcessImagesAsync(object sender, DoWorkEventArgs e)
+        {
+            ProcessImages(e.Argument as string[]);
+        }
+
+        /// <summary>
+        /// Handles the ProgressChanged event of the Worker control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="System.ComponentModel.ProgressChangedEventArgs"/> instance containing the event data.</param>
+        private void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            int value = e.ProgressPercentage;
+            int maximum = (int) e.UserState;
+            Invoke(new Action<int, int>(UpdateProgressBar), value, maximum);
+        }
+
+        /// <summary>
+        /// Updates the progress bar.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="maximum">The maximum.</param>
+        private void UpdateProgressBar(int value, int maximum)
+        {
+            ProgressBar.Value = value;
+            ProgressBar.Maximum = maximum;
+            ProgressBar.Invalidate();
+            Application.DoEvents();
+        }
+
+        /// <summary>
+        /// Raises the <see cref="E:System.Windows.Forms.Form.FormClosing" /> event.
+        /// </summary>
+        /// <param name="e">A <see cref="T:System.Windows.Forms.FormClosingEventArgs" /> that contains the event data.</param>
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+            Worker.CancelAsync();
         }
     }
 }
