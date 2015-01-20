@@ -181,3 +181,6 @@ UpgradeLog*.htm
 
 # Microsoft Fakes
 FakesAssemblies/
+RedCell.App.Graphics.JpegQuality/Properties/Settings.settings
+RedCell.App.Graphics.JpegQuality.sln.GhostDoc.xml
+RedCell.App.Graphics.JpegQuality/app.config
