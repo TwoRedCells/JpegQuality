@@ -53,7 +53,7 @@ namespace RedCell.Apps.Graphics
                 {
                     var list = new List<string>(args);
                     list.RemoveAt(0); // First argument is path to exe.
-                    ProcessImagesAsync(this, new DoWorkEventArgs(list.ToArray()));
+                    Worker.RunWorkerAsync(list.ToArray());
                     Close();
                 }
             }
@@ -64,7 +64,7 @@ namespace RedCell.Apps.Graphics
         }
 
         /// <summary>
-        /// Gets the quality.
+        /// Gets/sets the quality.
         /// </summary>
         /// <value>The quality.</value>
         public int Quality
@@ -89,7 +89,7 @@ namespace RedCell.Apps.Graphics
                         valid = false;
 
                 if (valid)
-                    ProcessImagesAsync(this, new DoWorkEventArgs(files.ToArray()));
+                    Worker.RunWorkerAsync(files.ToArray());
             }
             catch (Exception ex)
             {
@@ -143,7 +143,6 @@ namespace RedCell.Apps.Graphics
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="destination">The destination.</param>
-        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         private void ProcessImage(string source, string destination)
         {
             using (var original = Bitmap.FromFile(source))
@@ -197,7 +196,6 @@ namespace RedCell.Apps.Graphics
             ProgressBar.Value = value;
             ProgressBar.Maximum = maximum;
             ProgressBar.Invalidate();
-            Application.DoEvents();
         }
 
         /// <summary>
