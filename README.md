@@ -3,6 +3,9 @@ JpegQuality
 
 [Read about how `JpegQuality` works on CodeProject.](http://www.codeproject.com/Articles/868207/Drag-and-Drop-Tool-to-Reduce-JPEG-Quality-and-file)
 
+Overview
+--------
+
 Make a lower-quality copy of multiple JPEG files. This is useful when you have shot
 lots of high-quality, high-resolution images that are not important enough to store
 at their original size. These results are typical:
